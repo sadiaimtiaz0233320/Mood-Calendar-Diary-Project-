@@ -1,1 +1,1 @@
-# Mood-Calendar-Diary-Project-
+# Mood-Calendar-Diary-Project-MoodCal Diary System is a Java Swing application designed to manage personal events, calendar views, mood-based themes, and diary entries. It features separate Admin and User modules, secure login screens, event management tools, color-coded calendar themes, and file-based data persistence.
