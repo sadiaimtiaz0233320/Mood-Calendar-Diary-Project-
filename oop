@@ -1,0 +1,496 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ */
+
+package com.mycompany.final_oop_project;
+
+/**
+ *
+ * @author Sadia
+ */
+ // MoodCal Diary System - Clean, Error-Free, Single File Version
+// Java 8 Compatible
+// Admin Login: admin / admin
+// File Handling: users.dat, events.dat
+
+ import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.io.*;
+import java.time.*;
+import java.time.format.TextStyle;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class MoodCal_Diary_System_MultiScreen extends JFrame {
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel cards = new JPanel(cardLayout);
+
+    private Color themeColor = new Color(200, 230, 255);
+
+    private final Map<String, User> users = new HashMap<>();
+    private final List<Event> events = new ArrayList<>();
+    private User currentUser;
+
+    private YearMonth currentMonth = YearMonth.now();
+
+    private JPanel loginPanel, dash, mood, calPanel, reg, diaryPanel, thankYouPanel;
+
+    private static final String USERS_FILE = "users.dat";
+    private static final String EVENTS_FILE = "events.dat";
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(MoodCal_Diary_System_MultiScreen::new);
+    }
+
+    public MoodCal_Diary_System_MultiScreen() {
+        setTitle("MoodCal Diary System");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1000, 650);
+        setLocationRelativeTo(null);
+
+        loadUsers();
+        loadEvents();
+        createScreens();
+        add(cards);
+        setVisible(true);
+    }
+
+    private void createScreens() {
+        createLoginScreen();
+        createDashboardScreen();
+        createMoodScreen();
+        createCalendarScreen();
+        createRegisterScreen();
+        createDiaryScreen();
+        createThankYouScreen();
+
+        if (!users.containsKey("admin")) {
+            users.put("admin", new User("admin", "admin", "Administrator", true));
+            saveUsers();
+        }
+    }
+
+    /* ---------------- LOGIN ---------------- */
+    private void createLoginScreen() {
+        loginPanel = new JPanel(new BorderLayout());
+        loginPanel.setBackground(themeColor);
+
+        JLabel title = new JLabel("CALENDAR", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 60));
+        loginPanel.add(title, BorderLayout.NORTH);
+
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setBackground(themeColor);
+        center.setBorder(new EmptyBorder(40, 300, 40, 300));
+
+        JTextField userField = new JTextField();
+        JPasswordField passField = new JPasswordField();
+        userField.setMaximumSize(new Dimension(400, 35));
+        passField.setMaximumSize(new Dimension(400, 35));
+
+        JButton login = new JButton("Login");
+        JButton register = new JButton("Register User");
+
+        center.add(new JLabel("Username:")); center.add(userField);
+        center.add(Box.createRigidArea(new Dimension(0, 10)));
+        center.add(new JLabel("Password:")); center.add(passField);
+        center.add(Box.createRigidArea(new Dimension(0, 20)));
+        center.add(login);
+        center.add(Box.createRigidArea(new Dimension(0, 10)));
+        center.add(register);
+
+        loginPanel.add(center, BorderLayout.CENTER);
+
+        login.addActionListener(e -> {
+            String u = userField.getText().trim();
+            String p = new String(passField.getPassword());
+            if (users.containsKey(u) && users.get(u).password.equals(p)) {
+                currentUser = users.get(u);
+                showCard("dashboard");
+            } else {
+                JOptionPane.showMessageDialog(this, "Wrong username or password!");
+            }
+        });
+
+        register.addActionListener(e -> showCard("register"));
+
+        cards.add(loginPanel, "login");
+    }
+
+    /* ---------------- DASHBOARD ---------------- */
+    private void createDashboardScreen() {
+        dash = new JPanel(new BorderLayout());
+        dash.setBackground(themeColor);
+
+        JLabel title = new JLabel("Dashboard", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 40));
+        dash.add(title, BorderLayout.NORTH);
+
+        JPanel buttons = new JPanel(new GridLayout(2, 2, 20, 20));
+        buttons.setBackground(themeColor);
+        buttons.setBorder(new EmptyBorder(40, 40, 40, 40));
+
+        JButton openCalendar = new JButton("Open Calendar");
+        JButton moodBtn = new JButton("Mood Color Settings");
+        JButton diaryBtn = new JButton("Diary");
+        JButton thankYouBtn = new JButton("Thank You");
+
+        buttons.add(openCalendar);
+        buttons.add(moodBtn);
+        buttons.add(diaryBtn);
+        buttons.add(thankYouBtn);
+
+        dash.add(buttons, BorderLayout.CENTER);
+
+        JButton logout = new JButton("Logout");
+        dash.add(logout, BorderLayout.SOUTH);
+
+        openCalendar.addActionListener(e -> showCard("calendar"));
+        moodBtn.addActionListener(e -> showCard("mood"));
+        diaryBtn.addActionListener(e -> showCard("diary"));
+        thankYouBtn.addActionListener(e -> showCard("thankyou"));
+        logout.addActionListener(e -> {
+            currentUser = null;
+            showCard("login");
+        });
+
+        cards.add(dash, "dashboard");
+    }
+
+    /* ---------------- MOOD SCREEN ---------------- */
+    private void createMoodScreen() {
+        mood = new JPanel(new BorderLayout());
+        mood.setBackground(themeColor);
+
+        JLabel title = new JLabel("Select Your Mood", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 36));
+        mood.add(title, BorderLayout.NORTH);
+
+        JPanel moodGrid = new JPanel(new GridLayout(2, 3, 20, 20));
+        moodGrid.setBorder(new EmptyBorder(40, 100, 40, 100));
+        moodGrid.setBackground(themeColor);
+
+        JButton happy = new JButton("😊 Happy");
+        JButton sad = new JButton("😢 Sad");
+        JButton angry = new JButton("😡 Angry");
+        JButton calm = new JButton("😌 Calm");
+        JButton love = new JButton("😍 Love");
+        JButton normal = new JButton("😐 Neutral");
+
+        moodGrid.add(happy); moodGrid.add(sad); moodGrid.add(angry);
+        moodGrid.add(calm); moodGrid.add(love); moodGrid.add(normal);
+
+        mood.add(moodGrid, BorderLayout.CENTER);
+
+        happy.addActionListener(e -> applyTheme(new Color(255, 255, 150)));
+        sad.addActionListener(e -> applyTheme(new Color(170, 200, 255)));
+        angry.addActionListener(e -> applyTheme(new Color(255, 120, 120)));
+        calm.addActionListener(e -> applyTheme(new Color(200, 255, 210)));
+        love.addActionListener(e -> applyTheme(new Color(255, 180, 220)));
+        normal.addActionListener(e -> applyTheme(new Color(220, 220, 220)));
+
+        JButton back = new JButton("Back");
+        back.addActionListener(e -> showCard("dashboard"));
+        mood.add(back, BorderLayout.SOUTH);
+
+        cards.add(mood, "mood");
+    }
+
+    // ================= FULL SCREEN THEME FIX =================
+    private void applyTheme(Color c) {
+        themeColor = c;
+        applyThemeToAll(this.getContentPane()); // recursive full screen color apply
+        JOptionPane.showMessageDialog(this, "Theme Updated!");
+        showCard("dashboard");
+    }
+
+    private void applyThemeToAll(Component comp) {
+        if (comp instanceof JComponent jc) {
+            jc.setBackground(themeColor);
+        }
+        if (comp instanceof Container c) {
+            for (Component child : c.getComponents()) {
+                applyThemeToAll(child);
+            }
+        }
+        comp.repaint();
+    }
+    // ========================================================
+
+    /* ---------------- CALENDAR ---------------- */
+    private void createCalendarScreen() {
+        calPanel = new JPanel(new BorderLayout());
+        calPanel.setBackground(themeColor);
+
+        JPanel top = new JPanel(new FlowLayout());
+        top.setBackground(themeColor);
+
+        JButton prev = new JButton("<<");
+        JButton next = new JButton(">>");
+        JLabel monthLbl = new JLabel();
+        monthLbl.setFont(new Font("SansSerif", Font.BOLD, 30));
+
+        top.add(prev); top.add(monthLbl); top.add(next);
+        calPanel.add(top, BorderLayout.NORTH);
+
+        JPanel grid = new JPanel(new GridLayout(7, 7));
+        grid.setBackground(themeColor);
+        calPanel.add(grid, BorderLayout.CENTER);
+
+        Runnable refresh = () -> {
+            grid.removeAll();
+            for (DayOfWeek dow : DayOfWeek.values()) {
+                JLabel d = new JLabel(dow.getDisplayName(TextStyle.SHORT, Locale.ENGLISH), SwingConstants.CENTER);
+                d.setFont(new Font("SansSerif", Font.BOLD, 16));
+                grid.add(d);
+            }
+
+            monthLbl.setText(currentMonth.getMonth() + " " + currentMonth.getYear());
+
+            LocalDate firstDay = currentMonth.atDay(1);
+            int start = firstDay.getDayOfWeek().getValue();
+            int days = currentMonth.lengthOfMonth();
+
+            for (int i = 1; i < start; i++) grid.add(new JLabel(""));
+            for (int d = 1; d <= days; d++) {
+                JButton dayBtn = new JButton(String.valueOf(d));
+                int dayValue = d;
+                dayBtn.addActionListener(ev -> JOptionPane.showMessageDialog(this, "You clicked date: " + dayValue));
+                grid.add(dayBtn);
+            }
+
+            grid.revalidate();
+            grid.repaint();
+        };
+
+        prev.addActionListener(e -> { currentMonth = currentMonth.minusMonths(1); refresh.run(); });
+        next.addActionListener(e -> { currentMonth = currentMonth.plusMonths(1); refresh.run(); });
+
+        refresh.run();
+
+        JButton back = new JButton("Back");
+        calPanel.add(back, BorderLayout.SOUTH);
+        back.addActionListener(e -> showCard("dashboard"));
+
+        cards.add(calPanel, "calendar");
+    }
+
+    /* ---------------- REGISTER ---------------- */
+    private void createRegisterScreen() {
+        reg = new JPanel();
+        reg.setLayout(new BoxLayout(reg, BoxLayout.Y_AXIS));
+        reg.setBorder(new EmptyBorder(40, 250, 40, 250));
+        reg.setBackground(themeColor);
+
+        JTextField u = new JTextField();
+        JPasswordField p = new JPasswordField();
+        JTextField f = new JTextField();
+
+        JButton create = new JButton("Create");
+        JButton back = new JButton("Back");
+
+        reg.add(new JLabel("Username:")); reg.add(u);
+        reg.add(new JLabel("Password:")); reg.add(p);
+        reg.add(new JLabel("Full Name:")); reg.add(f);
+        reg.add(Box.createRigidArea(new Dimension(0, 20)));
+        reg.add(create); reg.add(Box.createRigidArea(new Dimension(0, 10))); reg.add(back);
+
+        create.addActionListener(e -> {
+            String username = u.getText().trim();
+            String pass = new String(p.getPassword());
+            String full = f.getText().trim();
+            if (username.isEmpty() || pass.isEmpty() || full.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "All fields are required.");
+            } else if (users.containsKey(username)) {
+                JOptionPane.showMessageDialog(this, "Username already exists!");
+            } else {
+                users.put(username, new User(username, pass, full, false));
+                saveUsers();
+                JOptionPane.showMessageDialog(this, "User created!");
+                showCard("login");
+            }
+        });
+
+        back.addActionListener(e -> showCard("login"));
+        cards.add(reg, "register");
+    }
+
+    /* ---------------- DIARY ---------------- */
+    private void createDiaryScreen() {
+        diaryPanel = new JPanel(new BorderLayout());
+        diaryPanel.setBackground(themeColor);
+
+        JLabel titleLabel = new JLabel("Diary Entries", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
+        diaryPanel.add(titleLabel, BorderLayout.NORTH);
+
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        JList<String> entryList = new JList<>(listModel);
+        JScrollPane scrollPane = new JScrollPane(entryList);
+        diaryPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.setBackground(themeColor);
+        JButton addBtn = new JButton("Add Entry");
+        JButton editBtn = new JButton("Edit Selected");
+        JButton deleteBtn = new JButton("Delete Selected");
+        JButton backBtn = new JButton("Back");
+
+        buttonPanel.add(addBtn); buttonPanel.add(editBtn);
+        buttonPanel.add(deleteBtn); buttonPanel.add(backBtn);
+        diaryPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        Runnable refreshList = () -> {
+            listModel.clear();
+            List<Event> userEvents = events.stream()
+                    .filter(ev -> ev.username.equals(currentUser.username))
+                    .collect(Collectors.toList());
+            for (Event e : userEvents) listModel.addElement(e.date + " - " + e.title);
+        };
+
+        addBtn.addActionListener(e -> {
+            JTextField dateField = new JTextField(LocalDate.now().toString());
+            JTextField titleField = new JTextField();
+            JTextArea contentArea = new JTextArea(5, 20);
+            JScrollPane contentScroll = new JScrollPane(contentArea);
+
+            Object[] fields = {"Date (YYYY-MM-DD):", dateField, "Title:", titleField, "Content:", contentScroll};
+            int result = JOptionPane.showConfirmDialog(this, fields, "Add Diary Entry", JOptionPane.OK_CANCEL_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    LocalDate date = LocalDate.parse(dateField.getText());
+                    String entryTitle = titleField.getText().trim();
+                    String content = contentArea.getText().trim();
+                    if (!entryTitle.isEmpty() && !content.isEmpty()) {
+                        events.add(new Event(currentUser.username, date, entryTitle, content));
+                        saveEvents();
+                        refreshList.run();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Title and content cannot be empty.");
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date format.");
+                }
+            }
+        });
+
+        editBtn.addActionListener(e -> {
+            int index = entryList.getSelectedIndex();
+            if (index == -1) { JOptionPane.showMessageDialog(this, "Select an entry."); return; }
+            List<Event> userEvents = events.stream()
+                    .filter(ev -> ev.username.equals(currentUser.username))
+                    .collect(Collectors.toList());
+            Event ev = userEvents.get(index);
+
+            JTextField dateField = new JTextField(ev.date.toString());
+            JTextField titleField = new JTextField(ev.title);
+            JTextArea contentArea = new JTextArea(ev.content);
+            JScrollPane contentScroll = new JScrollPane(contentArea);
+
+            Object[] fields = {"Date (YYYY-MM-DD):", dateField, "Title:", titleField, "Content:", contentScroll};
+            int result = JOptionPane.showConfirmDialog(this, fields, "Edit Diary Entry", JOptionPane.OK_CANCEL_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    LocalDate date = LocalDate.parse(dateField.getText());
+                    String entryTitle = titleField.getText().trim();
+                    String content = contentArea.getText().trim();
+                    if (!entryTitle.isEmpty() && !content.isEmpty()) {
+                        ev.date = date;
+                        ev.title = entryTitle;
+                        ev.content = content;
+                        saveEvents();
+                        refreshList.run();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Title and content cannot be empty.");
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date format.");
+                }
+            }
+        });
+
+        deleteBtn.addActionListener(e -> {
+            int index = entryList.getSelectedIndex();
+            if (index == -1) { JOptionPane.showMessageDialog(this, "Select an entry."); return; }
+            List<Event> userEvents = events.stream()
+                    .filter(ev -> ev.username.equals(currentUser.username))
+                    .collect(Collectors.toList());
+            Event ev = userEvents.get(index);
+            events.remove(ev);
+            saveEvents();
+            refreshList.run();
+        });
+
+        backBtn.addActionListener(e -> showCard("dashboard"));
+
+        refreshList.run();
+        cards.add(diaryPanel, "diary");
+    }
+
+    /* ---------------- THANK YOU ---------------- */
+    private void createThankYouScreen() {
+        thankYouPanel = new JPanel(new BorderLayout());
+        thankYouPanel.setBackground(themeColor);
+
+        JLabel title = new JLabel("Thank You for Using MoodCal!", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 40));
+        thankYouPanel.add(title, BorderLayout.CENTER);
+
+        JButton backToLogin = new JButton("Back to Login");
+        thankYouPanel.add(backToLogin, BorderLayout.SOUTH);
+        backToLogin.addActionListener(e -> showCard("login"));
+
+        cards.add(thankYouPanel, "thankyou");
+    }
+
+    private void showCard(String name) {
+        cardLayout.show(cards, name);
+    }
+
+    /* ---------------- DATA ---------------- */
+    private void loadUsers() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(USERS_FILE))) {
+            Object obj = ois.readObject();
+            if (obj instanceof Map<?, ?> map) {
+                for (Object k : map.keySet()) {
+                    users.put((String) k, (User) map.get(k));
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void saveUsers() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USERS_FILE))) {
+            oos.writeObject(users);
+        } catch (Exception ex) { ex.printStackTrace(); }
+    }
+
+    private void loadEvents() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(EVENTS_FILE))) {
+            Object obj = ois.readObject();
+            if (obj instanceof List<?> list) {
+                for (Object o : list) events.add((Event) o);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void saveEvents() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(EVENTS_FILE))) {
+            oos.writeObject(events);
+        } catch (Exception ex) {}
+    }
+
+    static class User implements Serializable {
+        String username, password;
+        public User(String u, String p, String f, boolean a) { username = u; password = p; }
+    }
+
+    static class Event implements Serializable {
+        String username, title, content;
+        LocalDate date;
+        public Event(String user, LocalDate d, String t, String c) { username = user; date = d; title = t; content = c; }
+    }
+}
